@@ -1,0 +1,40 @@
+name: Оновити розклад
+ 
+on:
+  schedule:
+    # Кожні 30 хвилин. GitHub може затримувати schedule-запуски під час
+    # пікових навантажень на платформі, тому фактична частота іноді буде
+    # трохи рідшою — це нормально.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}   # кнопка "Run workflow" у вкладці Actions — ручний запуск
+ 
+permissions:
+  contents: write
+ 
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+ 
+      - name: Fetch fresh schedule data
+        run: python3 scripts/update_schedule.py
+ 
+      - name: Commit and push if changed
+        run: |
+          git config user.name "schedule-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git diff --quiet -- data/schedule.json; then
+            echo "No changes."
+          else
+            git add data/schedule.json
+            git commit -m "Auto-update schedule data"
+            git push
+          fi
+ 
