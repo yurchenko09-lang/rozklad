@@ -33,7 +33,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 KYIV = ZoneInfo("Europe/Kyiv")
-RANGE_DAYS = 6  # today + this many days ahead
+RANGE_DAYS = 1  # today + this many days ahead (1 = up to tomorrow)
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "schedule.json"
 
