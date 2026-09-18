@@ -203,6 +203,16 @@ def main():
         store["days"][iso] = day
         print(f"   {day['status']} — {len(day['entries'])} entries")
 
+    # Drop any day beyond today..+RANGE_DAYS that's left over from a run
+    # with a wider range (e.g. RANGE_DAYS used to be larger). Past days are
+    # never touched here — only future ones outside the current window.
+    max_iso = (today + timedelta(days=RANGE_DAYS)).isoformat()
+    stale = [iso for iso in store["days"] if iso > max_iso]
+    for iso in stale:
+        del store["days"][iso]
+    if stale:
+        print(f"Pruned {len(stale)} day(s) beyond {max_iso}: {', '.join(sorted(stale))}")
+
     store["updatedAt"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
     DATA_FILE.write_text(json.dumps(store, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
     print(f"Wrote {DATA_FILE} — {len(store['days'])} days total.")
