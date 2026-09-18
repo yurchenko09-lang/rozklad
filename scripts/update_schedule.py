@@ -3,10 +3,12 @@
 Update data/schedule.json with fresh entries scraped from the college's
 "Зміни до розкладу" Google Sheets.
 
-Runs unattended on GitHub Actions (no confirmation gate, no session-cache
-staleness) — uses the sheet's CSV export endpoint (which redirects to a
-live, uncached googleusercontent copy) rather than the gviz visualization
-endpoint, which Google can cache for a long time.
+Runs unattended on GitHub Actions (no confirmation gate). Uses the Google
+Visualization API's CSV export (gviz/tq) endpoint — the plain "/export?
+format=csv" endpoint gets blocked (HTTP 400) when called from GitHub
+Actions' datacenter IP ranges. The gviz endpoint can lag a live edit by a
+few minutes due to server-side caching, which is acceptable for a job that
+reruns every ~30 minutes.
 
 Never touches dates before today (Europe/Kyiv). For today..+RANGE_DAYS it
 re-checks the source and:
@@ -63,7 +65,13 @@ HEADERS = {
 
 
 def fetch_csv(sheet_id: str, gid: int) -> str:
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    # The undocumented "/export?format=csv" endpoint started returning
+    # "400 Bad Request" for requests coming from GitHub Actions' IP ranges
+    # (Google appears to be blocking it for cloud-CI datacenter IPs). The
+    # official Google Visualization API endpoint below is more tolerant of
+    # automated traffic; the tradeoff is a few minutes of server-side
+    # caching, which is fine for a job that reruns every ~30 minutes.
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid={gid}"
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=30) as resp:
         raw = resp.read()
